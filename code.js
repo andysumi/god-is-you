@@ -20,3 +20,28 @@ function saveToken() { // eslint-disable-line no-unused-vars
     userProperties.setProperty('SLACK_TOKEN', isInput.getResponseText());
   }
 }
+
+function searchMessages() { // eslint-disable-line no-unused-vars
+  var query = SpreadsheetApp.getActiveSheet().getRange('C2').getValue();
+  Logger.log(sendRequest('/search.messages?query=' + encodeURIComponent(query), 'get'));
+}
+
+function sendRequest(path, method, payload) { // eslint-disable-line no-unused-vars
+  var url = 'https://slack.com/api' + path;
+  var response = UrlFetchApp.fetch(url, {
+    method             : method,
+    muteHttpExceptions : true,
+    contentType        : 'application/json; charset=utf-8',
+    headers            : {
+      Authorization : 'Bearer ' + PropertiesService.getUserProperties().getProperty('SLACK_TOKEN')
+    },
+    payload            : JSON.stringify(payload) || {}
+  });
+
+  if (response.getResponseCode() == 200) {
+    return JSON.parse(response.getContentText());
+  }
+
+  Logger.log('Request failed. Expected 200, got %d: %s', response.getResponseCode(), response.getContentText());
+  return false;
+}
