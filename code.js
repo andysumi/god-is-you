@@ -23,7 +23,25 @@ function saveToken() { // eslint-disable-line no-unused-vars
 
 function searchMessages() { // eslint-disable-line no-unused-vars
   var query = SpreadsheetApp.getActiveSheet().getRange('C2').getValue();
-  Logger.log(sendRequest('/search.messages?query=' + encodeURIComponent(query), 'get'));
+  var result = sendRequest('/search.messages?query=' + encodeURIComponent(query), 'get');
+
+  if (result.messages.total == 0) {
+    SpreadsheetApp.getUi().alert('該当件数は0件です');
+    return null;
+  }
+
+  var resultValues = [['channel_id', 'timestamp', 'username', 'text', 'permallink']];
+  for (var i = 0; i < result.messages.matches.length; i++) {
+    resultValues.push([
+      result.messages.matches[i].channel.id,
+      result.messages.matches[i].ts,
+      result.messages.matches[i].username,
+      result.messages.matches[i].text,
+      result.messages.matches[i].permalink
+    ]);
+  }
+
+  SpreadsheetApp.getActiveSheet().getRange(5, 1, resultValues.length, resultValues[0].length).setValues(resultValues);
 }
 
 function sendRequest(path, method, payload) { // eslint-disable-line no-unused-vars
