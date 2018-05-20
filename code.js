@@ -21,26 +21,39 @@ function saveToken() { // eslint-disable-line no-unused-vars
   }
 }
 
-function searchMessages() { // eslint-disable-line no-unused-vars
-  var query = SpreadsheetApp.getActiveSheet().getRange('C2').getValue();
-  var result = sendRequest('/search.messages?query=' + encodeURIComponent(query), 'get');
+function godSearch() { // eslint-disable-line no-unused-vars
+  var query = SpreadsheetApp.getActiveSheet().getRange('B2').getValue();
 
-  if (result.messages.total == 0) {
+  // クエリに該当するメッセージを取得
+  var resultMessages = sendRequest('/search.messages?query=' + encodeURIComponent(query) + '&count=100&sort_dir=asc', 'get');
+  Logger.log(JSON.stringify(resultMessages, null, 4));
+
+  if (resultMessages.ok == false) {
+    SpreadsheetApp.getUi().alert('処理中にエラーが発生しました');
+    return false;
+  }
+
+  if (resultMessages.messages.total == 0) {
     SpreadsheetApp.getUi().alert('該当件数は0件です');
     return null;
   }
 
-  var resultValues = [['channel_id', 'timestamp', 'username', 'text', 'permallink']];
-  for (var i = 0; i < result.messages.matches.length; i++) {
-    resultValues.push([
-      result.messages.matches[i].channel.id,
-      result.messages.matches[i].ts,
-      result.messages.matches[i].username,
-      result.messages.matches[i].text,
-      result.messages.matches[i].permalink
-    ]);
-  }
+  var resultValues = [['channel_id', 'username', 'text', 'reaction', 'count']];
+  for (var i = 0; i < resultMessages.messages.matches.length; i++) {
 
+    // 各メッセージのリアクションを取得
+    var resultReactions = sendRequest('/reactions.get?channel=' + resultMessages.messages.matches[i].channel.id + '&timestamp=' + resultMessages.messages.matches[i].ts, 'get');
+    Logger.log(JSON.stringify(resultReactions, null, 4));
+
+    resultValues.push([
+      resultMessages.messages.matches[i].channel.name,
+      resultMessages.messages.matches[i].username,
+      '=HYPERLINK("' + resultMessages.messages.matches[i].permalink + '", "' + resultMessages.messages.matches[i].text + '")',
+      resultReactions.message.reactions[0].name,
+      resultReactions.message.reactions[0].count
+    ]);
+    Logger.log(JSON.stringify(resultValues, null, 4));
+  }
   SpreadsheetApp.getActiveSheet().getRange(5, 1, resultValues.length, resultValues[0].length).setValues(resultValues);
 }
 
