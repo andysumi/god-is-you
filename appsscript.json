@@ -1,6 +1,11 @@
 {
   "timeZone": "Asia/Tokyo",
   "dependencies": {
+    "libraries": [{
+      "userSymbol": "SlackClient",
+      "libraryId": "1bKm2bcgwD1HZFqI4DeTvrLcuqk-2KRfzRcgR5_RJ-f-1ZXU1xXJIxeKd",
+      "version": "4"
+    }]
   },
   "exceptionLogging": "STACKDRIVER"
 }

@@ -1,3 +1,5 @@
+/* global SlackClient:false */
+
 function onOpen() { // eslint-disable-line no-unused-vars
   SpreadsheetApp.getUi().createMenu('God is you')
     .addItem('Authentication', 'saveToken')
@@ -25,7 +27,8 @@ function godSearch() { // eslint-disable-line no-unused-vars
   var query = SpreadsheetApp.getActiveSheet().getRange('B2').getValue();
 
   // クエリに該当するメッセージを取得
-  var resultMessages = sendRequest('/search.messages?query=' + encodeURIComponent(query) + '&count=100&sort_dir=asc', 'get');
+  var SlackApp = SlackClient.create(PropertiesService.getUserProperties().getProperty('SLACK_TOKEN'));
+  var resultMessages = JSON.parse(SlackApp.searchMessage(query, { 'count': 100, 'sort_dir': 'asc' }));
   Logger.log(JSON.stringify(resultMessages, null, 4));
 
   if (resultMessages.ok == false) {
@@ -42,7 +45,7 @@ function godSearch() { // eslint-disable-line no-unused-vars
   for (var i = 0; i < resultMessages.messages.matches.length; i++) {
 
     // 各メッセージのリアクションを取得
-    var resultReactions = sendRequest('/reactions.get?channel=' + resultMessages.messages.matches[i].channel.id + '&timestamp=' + resultMessages.messages.matches[i].ts, 'get');
+    var resultReactions = JSON.parse(SlackApp.getReactionsFromMessage(resultMessages.messages.matches[i].channel.id, resultMessages.messages.matches[i].ts));
     Logger.log(JSON.stringify(resultReactions, null, 4));
 
     resultValues.push([
@@ -52,27 +55,8 @@ function godSearch() { // eslint-disable-line no-unused-vars
       resultReactions.message.reactions[0].name,
       resultReactions.message.reactions[0].count
     ]);
-    Logger.log(JSON.stringify(resultValues, null, 4));
   }
+  Logger.log(JSON.stringify(resultValues, null, 4));
+
   SpreadsheetApp.getActiveSheet().getRange(5, 1, resultValues.length, resultValues[0].length).setValues(resultValues);
-}
-
-function sendRequest(path, method, payload) { // eslint-disable-line no-unused-vars
-  var url = 'https://slack.com/api' + path;
-  var response = UrlFetchApp.fetch(url, {
-    method             : method,
-    muteHttpExceptions : true,
-    contentType        : 'application/json; charset=utf-8',
-    headers            : {
-      Authorization : 'Bearer ' + PropertiesService.getUserProperties().getProperty('SLACK_TOKEN')
-    },
-    payload            : JSON.stringify(payload) || {}
-  });
-
-  if (response.getResponseCode() == 200) {
-    return JSON.parse(response.getContentText());
-  }
-
-  Logger.log('Request failed. Expected 200, got %d: %s', response.getResponseCode(), response.getContentText());
-  return false;
 }
